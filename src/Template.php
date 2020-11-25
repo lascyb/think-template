@@ -111,7 +111,7 @@ class Template
 
         // 初始化模板编译存储器
         $type  = $this->config['compile_type'] ? $this->config['compile_type'] : 'File';
-        $class = false !== strpos($type, '\\') ? $type : '\\think\\template\\driver\\' . ucwords($type);
+        $class = false !== strpos($type, '\\') ? $type : '\\lascyb\\think\\template\\driver\\' . ucwords($type);
 
         $this->storage = new $class();
     }
@@ -794,7 +794,7 @@ class Template
             $className = $tagLib;
             $tagLib    = substr($tagLib, strrpos($tagLib, '\\') + 1);
         } else {
-            $className = '\\think\\template\\taglib\\' . ucwords($tagLib);
+            $className = '\\lascyb\\think\\template\\taglib\\' . ucwords($tagLib);
         }
 
         $tLib = new $className($this);
