@@ -1,3 +1,11 @@
+#基于 ThinkTemplate 二次开发
+
+- 加入模板常量配置配置文件；
+- 模板常量文件多文件后缀支持（.php/.json）；
+
+
+>>>---
+
 # ThinkTemplate
 
 基于XML和标签库的编译型模板引擎
@@ -21,8 +29,8 @@
 
 ## 安装
 
-~~~php
-composer require topthink/think-template
+~~~
+composer require lascyb/topthink/think-template
 ~~~
 
 ## 用法示例
