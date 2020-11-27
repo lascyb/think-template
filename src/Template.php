@@ -33,6 +33,8 @@ class Template
      * @var array
      */
     protected $config = [
+        'view_config_suffix' => 'json', // 默认模板配置后缀
+        /*以下为Think引擎默认配置 */
         'view_path'          => '', // 模板路径
         'view_suffix'        => 'html', // 默认模板文件后缀
         'view_depr'          => DIRECTORY_SEPARATOR,
@@ -1213,6 +1215,7 @@ class Template
 
             $template = $this->parseTemplateFile($templateName);
 
+
             if ($template) {
                 // 获取模板文件内容
                 $parseStr .= file_get_contents($template);
@@ -1240,6 +1243,13 @@ class Template
 
             $template = $this->config['view_path'] . $template . '.' . ltrim($this->config['view_suffix'], '.');
         }
+        //解析模板配置文件名
+        $configFile =  substr_replace($template,ltrim($this->config['view_config_suffix'], '.'),-strlen($this->config['view_suffix']));
+        if (is_file($configFile)){
+            $__STATIC__=json_decode(file_get_contents($configFile),true);
+            $__STATIC__=$this->MultiToOneDimensional($__STATIC__['vars']??[],'__STATIC');
+            $this->config['tpl_replace_string']=array_merge($this->config['tpl_replace_string'],$__STATIC__);
+        }//todo 缓存更新
 
         if (is_file($template)) {
             // 记录模板文件的更新时间
@@ -1249,6 +1259,29 @@ class Template
         }
 
         throw new Exception('template not exists:' . $template);
+    }
+
+    /** 此方法可以将视图配置文件中的数据转化为模板常量
+     * @param array $array 多维数组
+     * @param string $prefix 前缀
+     * @param string $delimiter 分隔符
+     * @param string $suffix 后缀
+     * @return array 一维数组
+     */
+    public function MultiToOneDimensional(array $array, $prefix='__STATIC', $delimiter=".", $suffix=""){
+        $data=[];
+        foreach ($array as $key=>$item) {
+            if (is_array($item)) {
+                if (isset($item['value'])) {
+                    $data[$prefix . $delimiter . $key . $suffix] = $item['value'];
+                } elseif (isset($item['vars'])) {
+                    $data = array_merge($data, $this->MultiToOneDimensional($item['vars'], $prefix . $delimiter . $key, $delimiter, $suffix));
+                }
+            } else {
+                $data[$prefix . $delimiter . $key . $suffix] = $item;
+            }
+        }
+        return $data;
     }
 
     /**

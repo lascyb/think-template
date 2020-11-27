@@ -1,11 +1,52 @@
-#基于 ThinkTemplate 二次开发
+# Lascyb 模板引擎
 
+## 主要特性
+- 基于 ThinkTemplate 二次开发
 - 加入模板常量配置配置文件；
 - 模板常量文件多文件后缀支持（.php/.json）；
-
+- 支持主题模板
+- 其他特性参考下面 ThinkTemplate
+## 安装
+~~~php
+composer require lascyb/think-template
+~~~
 
 >>>---
-
+>相关用法基本与 ThinkTemplate 相同,但是在视图文件夹中增加了配置文件，和主题模板目录，目录结构如下
+>
+ - comtroller
+ - model
+ - view 
+    - default
+        - index
+            - index.html
+            - index.json
+        - public
+            - header.html
+            - header.json
+            - footer.html
+            - footer.json
+    - red
+        - index
+            - index.html
+            - index.json
+> - 以上定义了一个default 主题 和 red 主题，并分别为模板文件定义了配置文件
+> - 需要注意的是，如果index.html 引用了 header.html
+>      - header.json中若与index.json 有相同配置项,header.json 配置的优先级更高
+> - 若启用主题模板，需要在试图配置中添加theme 配置 如
+>   
+```php 
+return [
+    // 模板引擎类型使用Lascyb
+    'type'          => 'Lascyb',
+    // 主题模板使用 default，不使用填 false
+    'theme'         =>'default'
+];
+```
+>
+>
+>
+>>>---
 # ThinkTemplate
 
 基于XML和标签库的编译型模板引擎
@@ -30,7 +71,7 @@
 ## 安装
 
 ~~~
-composer require lascyb/topthink/think-template
+composer require topthink/think-template
 ~~~
 
 ## 用法示例
