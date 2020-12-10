@@ -247,7 +247,11 @@ class Template
 
             // 页面缓存
             ob_start();
-            ob_implicit_flush(0);
+            if (PHP_VERSION > 8.0) {
+                ob_implicit_flush(false);
+            } else {
+                ob_implicit_flush(0);
+            }
 
             // 读取编译存储
             $this->storage->read($cacheFile, $this->data);
@@ -1216,7 +1220,6 @@ class Template
 
             $template = $this->parseTemplateFile($templateName);
 
-
             if ($template) {
                 // 获取模板文件内容
                 $parseStr .= $this->file_get_contents($template);
@@ -1244,10 +1247,10 @@ class Template
 
             $template = $this->config['view_path'] . $template . '.' . ltrim($this->config['view_suffix'], '.');
         }
-        //缓存更新
+
         if (is_file($template)) {
             // 记录模板文件的更新时间
-            $this->includeFile[$template]=filemtime($template);
+            $this->includeFile[$template] = filemtime($template);
             return $template;
         }
 
