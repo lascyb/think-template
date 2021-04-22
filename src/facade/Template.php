@@ -9,7 +9,7 @@
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
 
-namespace think\facade;
+namespace lascyb\think\facade;
 
 if (class_exists('think\Facade')) {
     class Facade extends \think\Facade
@@ -64,8 +64,8 @@ if (class_exists('think\Facade')) {
 }
 
 /**
- * @see \think\Template
- * @mixin \think\Template
+ * @see \lascyb\think\Template
+ * @mixin \lascyb\think\Template
  */
 class Template extends Facade
 {
@@ -78,6 +78,6 @@ class Template extends Facade
      */
     protected static function getFacadeClass()
     {
-        return 'think\Template';
+        return 'lascyb\think\Template';
     }
 }

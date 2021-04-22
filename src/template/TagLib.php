@@ -9,10 +9,10 @@
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
 
-namespace think\template;
+namespace lascyb\think\template;
 
 use Exception;
-use think\Template;
+use lascyb\think\Template;
 
 /**
  * ThinkPHP标签库TagLib解析基类

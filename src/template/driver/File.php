@@ -9,7 +9,7 @@
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
 
-namespace think\template\driver;
+namespace lascyb\think\template\driver;
 
 use Exception;
 

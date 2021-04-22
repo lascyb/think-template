@@ -10,7 +10,7 @@
 // +----------------------------------------------------------------------
 declare (strict_types = 1);
 
-namespace think;
+namespace lascyb\think;
 
 use Exception;
 use Psr\SimpleCache\CacheInterface;
@@ -33,6 +33,8 @@ class Template
      * @var array
      */
     protected $config = [
+        'view_config_suffix' => 'json', // 默认模板配置后缀
+        /*以下为Think引擎默认配置 */
         'view_path'          => '', // 模板路径
         'view_suffix'        => 'html', // 默认模板文件后缀
         'view_depr'          => DIRECTORY_SEPARATOR,
@@ -111,7 +113,7 @@ class Template
 
         // 初始化模板编译存储器
         $type  = $this->config['compile_type'] ? $this->config['compile_type'] : 'File';
-        $class = false !== strpos($type, '\\') ? $type : '\\think\\template\\driver\\' . ucwords($type);
+        $class = false !== strpos($type, '\\') ? $type : '\\lascyb\\think\\template\\driver\\' . ucwords($type);
 
         $this->storage = new $class();
     }
@@ -239,7 +241,7 @@ class Template
 
             if (!$this->checkCache($cacheFile)) {
                 // 缓存无效 重新模板编译
-                $content = file_get_contents($template);
+                $content = $this->file_get_contents($template);
                 $this->compiler($content, $cacheFile);
             }
 
@@ -369,6 +371,7 @@ class Template
 
         // 检查模板文件是否有更新
         foreach ($includeFile as $path => $time) {
+            // $time 有可能为 false ，但是不影响与数字作对比
             if (is_file($path) && filemtime($path) > $time) {
                 // 模板文件如果有更新则缓存需要更新
                 return false;
@@ -399,7 +402,7 @@ class Template
 
                 if ($layoutFile) {
                     // 替换布局的主体内容
-                    $content = str_replace($this->config['layout_item'], $content, file_get_contents($layoutFile));
+                    $content = str_replace($this->config['layout_item'], $content, $this->file_get_contents($layoutFile));
                 }
             }
         } else {
@@ -542,7 +545,7 @@ class Template
                 if ($layoutFile) {
                     $replace = isset($array['replace']) ? $array['replace'] : $this->config['layout_item'];
                     // 替换布局的主体内容
-                    $content = str_replace($replace, $content, file_get_contents($layoutFile));
+                    $content = str_replace($replace, $content, $this->file_get_contents($layoutFile));
                 }
             }
         } else {
@@ -798,7 +801,7 @@ class Template
             $className = $tagLib;
             $tagLib    = substr($tagLib, strrpos($tagLib, '\\') + 1);
         } else {
-            $className = '\\think\\template\\taglib\\' . ucwords($tagLib);
+            $className = '\\lascyb\\think\\template\\taglib\\' . ucwords($tagLib);
         }
 
         $tLib = new $className($this);
@@ -1219,7 +1222,7 @@ class Template
 
             if ($template) {
                 // 获取模板文件内容
-                $parseStr .= file_get_contents($template);
+                $parseStr .= $this->file_get_contents($template);
             }
         }
 
@@ -1248,11 +1251,60 @@ class Template
         if (is_file($template)) {
             // 记录模板文件的更新时间
             $this->includeFile[$template] = filemtime($template);
-
             return $template;
         }
 
         throw new Exception('template not exists:' . $template);
+    }
+
+    private function file_get_contents($filename){
+        //加载文件对应的配置文件
+        $this->parseTemplateConfig($filename);
+        return file_get_contents($filename);
+    }
+
+    /**
+     * 解析模板文件配置
+     * @access private
+     * @param  string $template 文件名
+     * @return string
+     */
+    private function parseTemplateConfig(string $template,$configPrefix=""): string
+    {
+        //解析模板配置文件名
+        $configFile =  substr_replace($template,ltrim($this->config['view_config_suffix'], '.'),-strlen($this->config['view_suffix']));
+        $configFileIsFile=is_file($configFile);
+        if ($configFileIsFile){
+            $__STATIC__=json_decode(file_get_contents($configFile),true);
+            $__STATIC__=$this->MultiToOneDimensional(
+                $__STATIC__??[],
+                empty($configPrefix)
+                    ? '__'.strtoupper(pathinfo($configFile, PATHINFO_FILENAME))
+                    : $configPrefix);
+            $this->config['tpl_replace_string']=array_merge($__STATIC__,$this->config['tpl_replace_string']);
+        }
+        //记录模板配置文件的更新时间,不存在则为false
+        $this->includeFile[$configFile]=$configFileIsFile?filemtime($configFile):false;
+    }
+
+
+    /** 此方法可以将视图配置文件中的数据转化为模板常量
+     * @param array $array 多维数组
+     * @param string $prefix 前缀
+     * @param string $delimiter 分隔符
+     * @param string $suffix 后缀
+     * @return array 一维数组
+     */
+    public function MultiToOneDimensional(array $array, $prefix='__Page', $delimiter=".", $suffix=""){
+        $data=[];
+        foreach ($array as $key=>$item) {
+            if (is_array($item)) {
+                $data = array_merge($data, $this->MultiToOneDimensional($item, $prefix . $delimiter . $key, $delimiter, $suffix));
+            } else {
+                $data[$prefix . $delimiter . $key . $suffix] = $item;
+            }
+        }
+        return $data;
     }
 
     /**
