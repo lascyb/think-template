@@ -2,16 +2,32 @@
 
 ## 主要特性
 - 基于 ThinkTemplate 二次开发
-- 加入模板常量配置配置文件；
-- 模板常量文件多文件后缀支持（.php/.json）；
+- 加入模板常量配置文件；
+- 模板常量文件文件后缀支持（.json）；
 - 支持主题模板
+- ```php
+  //在view 增加参数
+  "view_config_suffix"=>"json" // 默认模板配置后缀，其他后缀解析暂未完成
+  ```
+- 使用方法
+    >如定义了配置文件，则根据对应的文件名进行调用，
+    > 例如有 index.html 文件 ，存在配置文件index.json
+    ```json
+    {
+      "name":"我的文件全名叫做 index.html"    
+    }
+    ```
+    >调用时在index.html 使用 __INDEX.name 即可调用
+    > >会在模板缓存中作为常量直接缓存
+  
 - 其他特性参考下面 ThinkTemplate
-## 安装
+
+## 安装(一般需配合 lascyb/think-view 使用)
 ~~~php
 composer require lascyb/think-template
 ~~~
 
->>>---
+>---
 >相关用法基本与 ThinkTemplate 相同,但是在视图文件夹中增加了配置文件，和主题模板目录，目录结构如下
 >
  - comtroller
@@ -31,10 +47,12 @@ composer require lascyb/think-template
             - index.html
             - index.json
 > - 以上定义了一个default 主题 和 red 主题，并分别为模板文件定义了配置文件
-> - 需要注意的是，如果index.html 引用了 header.html
->      - header.json中若与index.json 有相同配置项,header.json 配置的优先级更高
-> - 若启用主题模板，需要在试图配置中添加theme 配置 如
->   
+> - 需要注意的是，如果index.html 引用了 header.html 或者使用了模板布局，
+    如果各个模板文件的名称不相同则无妨，但若是存在文件名相同的模板，则会存在优先级问题(
+    当前模板文件 > include标签包含的模板文件 > extend标签包含的模板文件 
+    > 布局标签包含的模板文件 > 模板布局文件 > 视图文件配置的tpl_replace_string)  
+> - 若启用主题模板，需要在试图配置(一般是view.php)中添加theme 配置 如
+
 ```php 
 return [
     // 模板引擎类型使用Lascyb

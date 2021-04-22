@@ -95,6 +95,16 @@ class Template
     protected $cache;
 
     /**
+     * 加载文件的配置信息
+     * @var array
+     */
+    private $fileConfigs=[
+        "layout"=>[],
+        "extend"=>[],
+        "include"=>[],
+        "master"=>[],
+    ];
+    /**
      * 架构函数
      * @access public
      * @param  array $config
@@ -241,7 +251,7 @@ class Template
 
             if (!$this->checkCache($cacheFile)) {
                 // 缓存无效 重新模板编译
-                $content = $this->file_get_contents($template);
+                $content = $this->file_get_contents($template,'master');
                 $this->compiler($content, $cacheFile);
             }
 
@@ -359,6 +369,7 @@ class Template
 
         preg_match('/\/\*(.+?)\*\//', $line, $matches);
 
+
         if (!isset($matches[1])) {
             return false;
         }
@@ -371,8 +382,7 @@ class Template
 
         // 检查模板文件是否有更新
         foreach ($includeFile as $path => $time) {
-            // $time 有可能为 false ，但是不影响与数字作对比
-            if (is_file($path) && filemtime($path) > $time) {
+            if (is_file($path) && filemtime($path) != $time) {
                 // 模板文件如果有更新则缓存需要更新
                 return false;
             }
@@ -402,7 +412,7 @@ class Template
 
                 if ($layoutFile) {
                     // 替换布局的主体内容
-                    $content = str_replace($this->config['layout_item'], $content, $this->file_get_contents($layoutFile));
+                    $content = str_replace($this->config['layout_item'], $content, $this->file_get_contents($layoutFile,'layout'));
                 }
             }
         } else {
@@ -423,7 +433,13 @@ class Template
         $content = preg_replace('/\?>\s*<\?php\s(?!echo\b|\bend)/s', '', $content);
 
         // 模板过滤输出
-        $replace = $this->config['tpl_replace_string'];
+        $replace = array_merge( //合并配置数据
+            $this->config['tpl_replace_string'],
+            $this->fileConfigs['layout'],
+            $this->fileConfigs['extend'],
+            $this->fileConfigs['include'],
+            $this->fileConfigs['master']
+        );
         $content = str_replace(array_keys($replace), array_values($replace), $content);
 
         // 添加安全代码及模板引用记录
@@ -545,7 +561,7 @@ class Template
                 if ($layoutFile) {
                     $replace = isset($array['replace']) ? $array['replace'] : $this->config['layout_item'];
                     // 替换布局的主体内容
-                    $content = str_replace($replace, $content, $this->file_get_contents($layoutFile));
+                    $content = str_replace($replace, $content, $this->file_get_contents($layoutFile,'layout'));
                 }
             }
         } else {
@@ -570,7 +586,7 @@ class Template
                     unset($array['file']);
 
                     // 分析模板文件名并读取内容
-                    $parseStr = $this->parseTemplateName($file);
+                    $parseStr = $this->parseTemplateName($file,'include');
 
                     foreach ($array as $k => $v) {
                         // 以$开头字符串转换成模板变量
@@ -610,7 +626,7 @@ class Template
                 if (!isset($array[$matches['name']])) {
                     $array[$matches['name']] = 1;
                     // 读取继承模板
-                    $extend = $this->parseTemplateName($matches['name']);
+                    $extend = $this->parseTemplateName($matches['name'],'extend');
 
                     // 递归检查继承
                     $func($extend);
@@ -1203,7 +1219,7 @@ class Template
      * @param  string $templateName 模板文件名
      * @return string
      */
-    private function parseTemplateName(string $templateName): string
+    private function parseTemplateName(string $templateName,$orgin=""): string
     {
         $array    = explode(',', $templateName);
         $parseStr = '';
@@ -1222,7 +1238,7 @@ class Template
 
             if ($template) {
                 // 获取模板文件内容
-                $parseStr .= $this->file_get_contents($template);
+                $parseStr .= $this->file_get_contents($template,$orgin);
             }
         }
 
@@ -1250,16 +1266,16 @@ class Template
 
         if (is_file($template)) {
             // 记录模板文件的更新时间
-            $this->includeFile[$template] = filemtime($template);
+            $this->includeFile[$template]=filemtime($template);
             return $template;
         }
 
         throw new Exception('template not exists:' . $template);
     }
 
-    private function file_get_contents($filename){
+    private function file_get_contents($filename,$configOrgin){
         //加载文件对应的配置文件
-        $this->parseTemplateConfig($filename);
+        $this->parseTemplateConfig($filename,$configOrgin);
         return file_get_contents($filename);
     }
 
@@ -1267,21 +1283,31 @@ class Template
      * 解析模板文件配置
      * @access private
      * @param  string $template 文件名
-     * @return string
+     * @param  string $configWeigh 配置的来源，用于同名时，区分优先级
+     * @return void
      */
-    private function parseTemplateConfig(string $template,$configPrefix=""): string
+    private function parseTemplateConfig(string $template,string $configOrgin)
     {
         //解析模板配置文件名
         $configFile =  substr_replace($template,ltrim($this->config['view_config_suffix'], '.'),-strlen($this->config['view_suffix']));
         $configFileIsFile=is_file($configFile);
         if ($configFileIsFile){
             $__STATIC__=json_decode(file_get_contents($configFile),true);
-            $__STATIC__=$this->MultiToOneDimensional(
-                $__STATIC__??[],
-                empty($configPrefix)
-                    ? '__'.strtoupper(pathinfo($configFile, PATHINFO_FILENAME))
-                    : $configPrefix);
-            $this->config['tpl_replace_string']=array_merge($__STATIC__,$this->config['tpl_replace_string']);
+            $__STATIC__=$this->MultiToOneDimensional($__STATIC__??[],'__'.strtoupper(pathinfo($configFile, PATHINFO_FILENAME)));
+            if (!empty($this->fileConfigs[$configOrgin])){
+                switch ($configOrgin){
+                    case "master":
+                    case "layout":
+                    case "include": //多个引入,最晚引入优先级越高
+                        $this->fileConfigs[$configOrgin]=array_column($this->fileConfigs[$configOrgin],$__STATIC__);
+                        break;
+                    case "extend": //多重继承，最上层继承，优先级最高
+                        $this->fileConfigs[$configOrgin]=array_column($__STATIC__,$this->fileConfigs[$configOrgin]);
+                        break;
+                }
+            }else{
+                $this->fileConfigs[$configOrgin]=$__STATIC__;
+            }
         }
         //记录模板配置文件的更新时间,不存在则为false
         $this->includeFile[$configFile]=$configFileIsFile?filemtime($configFile):false;
