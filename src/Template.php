@@ -1245,16 +1245,22 @@ class Template
         }
         //解析模板配置文件名
         $configFile =  substr_replace($template,ltrim($this->config['view_config_suffix'], '.'),-strlen($this->config['view_suffix']));
-        if (is_file($configFile)){
+        $configFileIsFile=is_file($configFile);
+        if ($configFileIsFile){
             $__STATIC__=json_decode(file_get_contents($configFile),true);
-            $__STATIC__=$this->MultiToOneDimensional($__STATIC__['vars']??[],'__STATIC');
+            $__STATIC__=$this->MultiToOneDimensional($__STATIC__??[],'__STATIC');
             $this->config['tpl_replace_string']=array_merge($this->config['tpl_replace_string'],$__STATIC__);
-        }//todo 缓存更新
-
+        }
+        //缓存更新
         if (is_file($template)) {
             // 记录模板文件的更新时间
-            $this->includeFile[$template] = filemtime($template);
-
+            if ($configFileIsFile){
+                $templateUpdateTime=filemtime($template);
+                $configFileUpdateTime=fileatime($configFile);
+                $this->includeFile[$template] = $templateUpdateTime>$configFileUpdateTime?$templateUpdateTime:$configFileUpdateTime;
+            }else{
+                $this->includeFile[$template]=filemtime($template);
+            }
             return $template;
         }
 
@@ -1272,11 +1278,7 @@ class Template
         $data=[];
         foreach ($array as $key=>$item) {
             if (is_array($item)) {
-                if (isset($item['value'])) {
-                    $data[$prefix . $delimiter . $key . $suffix] = $item['value'];
-                } elseif (isset($item['vars'])) {
-                    $data = array_merge($data, $this->MultiToOneDimensional($item['vars'], $prefix . $delimiter . $key, $delimiter, $suffix));
-                }
+                $data = array_merge($data, $this->MultiToOneDimensional($item, $prefix . $delimiter . $key, $delimiter, $suffix));
             } else {
                 $data[$prefix . $delimiter . $key . $suffix] = $item;
             }
