@@ -34,6 +34,7 @@ class Template
      */
     protected $config = [
         'view_config_suffix' => 'json', // 默认模板配置后缀
+        "view_config_prefix" => "__Page",//调用前缀，设置为false时,index.json 调用为 __INDEX.键名  header.json 调用为__HEADER.键名
         /*以下为Think引擎默认配置 */
         'view_path'          => '', // 模板路径
         'view_suffix'        => 'html', // 默认模板文件后缀
@@ -1293,7 +1294,7 @@ class Template
         $configFileIsFile=is_file($configFile);
         if ($configFileIsFile){
             $__STATIC__=json_decode(file_get_contents($configFile),true);
-            $__STATIC__=$this->MultiToOneDimensional($__STATIC__??[],'__'.strtoupper(pathinfo($configFile, PATHINFO_FILENAME)));
+            $__STATIC__=$this->MultiToOneDimensional($__STATIC__??[],$this->config["view_config_prefix"]??"__Page");
             if (!empty($this->fileConfigs[$configOrgin])){
                 switch ($configOrgin){
                     case "master":

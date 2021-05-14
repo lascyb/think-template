@@ -7,7 +7,10 @@
 - 支持主题模板
 - ```php
   //在view 增加参数
-  "view_config_suffix"=>"json" // 默认模板配置后缀，其他后缀解析暂未完成
+  [
+    "view_config_suffix"=>"json", // 默认模板配置后缀，其他后缀解析暂未完成
+    "view_config_prefix" => "__Page",//调用前缀，默认为__Page
+  ];
   ```
 - 使用方法
     >如定义了配置文件，则根据对应的文件名进行调用，
@@ -17,14 +20,14 @@
       "name":"我的文件全名叫做 index.html"    
     }
     ```
-    >调用时在index.html 使用 __INDEX.name 即可调用
+    >调用时在index.html 使用 __Page.name 即可调用
     > >会在模板缓存中作为常量直接缓存
   
 - 其他特性参考下面 ThinkTemplate
 
 ## 安装(一般需配合 lascyb/think-view 使用)
 ~~~php
-composer require lascyb/think-template
+composer require lascyb/think-template;
 ~~~
 
 >---
